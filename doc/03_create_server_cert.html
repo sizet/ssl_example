@@ -1,0 +1,187 @@
+<!-- © -->
+
+<html>
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="css_body">
+
+<div class="css_div_box_frame_full">
+  <div class="css_div_box_title">建立伺服器的憑證</div>
+  <div class="css_div_box_content">
+    <br>
+
+    01. 建立一個目錄, 存放所有關於伺服器憑證的資料, 名稱是
+    <font class="css_font_b1">/ca/server</font><br>
+    <div class="css_div_block">
+      <font class="css_font_p1">cd /ca</font><br>
+      <font class="css_font_p1">mkdir server</font><br>
+      <font class="css_font_p1">cd server</font>
+    </div>
+    <br>
+
+    02. 填寫 OpenSSL 需要的設定檔, 檔名是
+    <font class="css_font_b1">openssl_csr.cnf</font>,
+    並放置在 <font class="css_font_b1">server</font> 目錄內,
+    內容如下.<br>
+<pre class="css_pre_code">
+[ req ]
+# req 工具需要的參數.
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+string_mask        = utf8only
+default_md         = sha256
+
+[ req_distinguished_name ]
+# 產生憑證時要輸入的資料的說明.
+countryName            = Country Name (2 letter code)
+stateOrProvinceName    = State or Province Name
+localityName           = Locality Name
+0.organizationName     = Organization Name
+organizationalUnitName = Organizational Unit Name
+commonName             = Common Name
+emailAddress           = Email Address
+</pre>
+    <br>
+
+    03. 在伺服器憑證目錄產生憑證的私鑰, 檔名是
+    <font class="css_font_b1">server.key.pem</font><br>
+    <div class="css_div_block">
+      <font class="css_font_p1">openssl genrsa -aes256 -out server.key.pem 4096</font><br><br>
+      # 會提示需要輸入私鑰使用的密碼, 例如是 john123<br>
+      <font class="css_font_c1">Enter pass phrase for server.key.pem:</font><font class="css_font_r1">john123</font><br>
+      # 再次確認密碼.<br>
+      <font class="css_font_c1">Verifying - Enter pass phrase for server.key.pem:</font><font class="css_font_r1">john123</font><br><br>
+      # 變更私鑰的存取權限.<br>
+      <font class="css_font_p1">chmod 400 server.key.pem</font>
+    </div>
+    <br>
+
+    04. 在伺服器憑證目錄產生伺服器憑證的憑證簽發申請檔, 檔名是
+    <font class="css_font_b1">server.csr.pem</font><br>
+    <div class="css_div_block">
+      <font class="css_font_p1">
+      openssl req -config openssl_csr.cnf -new -sha256 \<br>
+      -key server.key.pem \<br>
+      -out server.csr.pem
+      </font><br><br>
+      # 會提示需要輸入伺服器憑證的私鑰密碼, 也就是 john123<br>
+      <font class="css_font_c1">Enter pass phrase for server.key.pem:</font><font class="css_font_r1">john123</font><br><br>
+      # 接著需要輸入憑證擁有者的資訊.<br>
+      <font class="css_font_c1">
+      You are about to be asked to enter information that will be incorporated into your certificate request.<br>
+      What you are about to enter is what is called a Distinguished Name or a DN.<br>
+      There are quite a few fields but you can leave some blank For some fields there will be a default value,<br>
+      If you enter '.', the field will be left blank.<br>
+      -----
+      </font><br>
+      # 所在的國家的縮寫, 2 個字母.<br>
+      <font class="css_font_c1">Country Name (2 letter code) []:</font><font class="css_font_r1">DE</font><br>
+      # 所在的州或省.<br>
+      <font class="css_font_c1">State or Province Name []:</font><font class="css_font_r1">Bayern</font><br>
+      # 所在的城市.<br>
+      <font class="css_font_c1">Locality Name []:</font><font class="css_font_r1">Munich</font><br>
+      # 所在的公司.<br>
+      <font class="css_font_c1">Organization Name []:</font><font class="css_font_r1">John Ltd</font><br>
+      # 所在的公司的單位.<br>
+      <font class="css_font_c1">Organizational Unit Name []:</font><font class="css_font_r1">John Ltd Web Server</font><br>
+      # 憑證的名稱.<br>
+      <font class="css_font_c1">Common Name []:</font><font class="css_font_r1">www.john.com</font><br>
+      # 聯絡信箱.<br>
+      <font class="css_font_c1">Email Address []:</font><font class="css_font_r1">john@local</font>
+    </div>
+    <br>
+
+    05. 使用中繼憑證去簽發伺服器憑證的憑證簽發申請檔, 產生伺服器的憑證, 檔名是
+    <font class="css_font_b1">server.cert.pem</font><br>
+    <div class="css_div_block">
+      # 在中繼憑證目錄下操作.<br>
+      <font class="css_font_p1">cd ../intermediate</font><br><br>
+      # 簽發憑證簽發申請檔, 有效期限是 365 天.<br>
+      <font class="css_font_p1">
+      openssl ca -config openssl_intermediate_ca.cnf -extensions server_cert \<br>
+      -days 365 -notext -md sha256 \<br>
+      -in ../server/server.csr.pem \<br>
+      -out ../server/server.cert.pem
+      </font><br><br>
+      # 會提示需要輸入中繼憑證的私鑰密碼, 也就是 bob123<br>
+      <font class="css_font_c1">Enter pass phrase for /ca/intermediate/private/intermediate_ca.key.pem:</font><font class="css_font_r1">bob123</font><br><br>
+      # 接著會顯示要簽發的憑證簽發申請檔的內容.<br>
+      <font class="css_font_c1">
+      Check that the request matches the signature<br>
+      Signature ok<br>
+      Certificate Details:<br>
+      ...
+      </font><br>
+      # 並詢問是否簽發, 輸入 y<br>
+      <font class="css_font_c1">Sign the certificate? [y/n]:</font><font class="css_font_r1">y</font><br>
+      # 以及詢問是否紀錄簽發的憑證到資料庫 (index.txt, serial), 輸入 y<br>
+      <font class="css_font_c1">1 out of 1 certificate requests certified, commit? [y/n]</font><font class="css_font_r1">y</font><br><br>
+      # 變更簽發的憑證的存取權限.<br>
+      <font class="css_font_p1">chmod 444 ../server/server.cert.pem</font>
+    </div>
+    <br>
+
+    06. 檢查簽發的伺服器憑證是否無誤.<br>
+    <div class="css_div_block">
+      <font class="css_font_p1">openssl x509 -noout -text -in ../server/server.cert.pem</font><br><br>
+      # 使用的演算法.<br>
+      <font class="css_font_c1">Signature Algorithm:</font>
+      <font class="css_font_r1">sha256WithRSAEncryption</font><br><br>
+      # 公鑰的長度.<br>
+      <font class="css_font_c1">Subject Public Key Info:</font><br>
+      <font class="css_font_r1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Public-Key: (4096 bit)</font><br><br>
+      # 有效日期.<br>
+      <font class="css_font_c1">Validity:</font><br>
+      <font class="css_font_r1">
+      &nbsp;&nbsp;&nbsp;&nbsp;Not Before: Aug &nbsp;4 23:59:15 2017 GMT<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Not After : Aug &nbsp;4 23:59:15 2018 GMT
+      </font><br><br>
+      # 主旨 (John 的資料).<br>
+      <font class="css_font_c1">Subject:</font>
+      <font class="css_font_r1">
+      C=DE, ST=Bayern, O=John Ltd, OU=John Ltd Web Server, CN=www.john.com/emailAddress=john@local
+      </font><br><br>
+      # 簽發者 (Bob 的資料).<br>
+      <font class="css_font_c1">Issuer:</font>
+      <font class="css_font_r1">
+      C=US, ST=California, O=Bob Ltd, OU=Bob Ltd Certificate Authority,
+      CN=Bob Ltd Intermediate CA/emailAddress=bob@local
+      </font>
+    </div>
+    <br>
+
+    07. 確認伺服器憑證的完整性, 需要做完整的串鍊檢查, 需要使用含有根憑證的憑證串鍊.<br>
+    <div class="css_div_block">
+      <font class="css_font_p1">
+      openssl verify -CAfile chain/chain.cert.pem ../server/server.cert.pem
+      </font><br><br>
+      # 顯示 OK 表示正確.<br>
+      <font class="css_font_c1">../server/server.cert.pem:</font>
+      <font class="css_font_r1">OK</font>
+    </div>
+    <br>
+
+    08. 產生伺服器憑證的憑證串鍊.
+    <div class="css_div_block">
+      # 回到伺服器憑證目錄處理.<br>
+      <font class="css_font_p1">cd ../server</font><br><br>
+      # 產生憑證串鍊.<br>
+      <font class="css_font_p1">
+      cat server.cert.pem ../intermediate/chain/chain.cert.pem &gt; server_chain.cert.pem
+      </font><br><br>
+      # 變更憑證串鍊的存取權限.<br>
+      <font class="css_font_p1">chmod 444 server_chain.cert.pem</font>
+    </div>
+    <br>
+
+  </div>
+</div>
+<br>
+
+</body>
+
+</html>

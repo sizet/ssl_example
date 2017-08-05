@@ -1,0 +1,208 @@
+<!-- © -->
+
+<html>
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="css_body">
+
+<div class="css_div_box_frame_full">
+  <div class="css_div_box_title">建立根憑證</div>
+  <div class="css_div_box_content">
+    <br>
+
+    根憑證一般情況用來簽發中繼憑證, 再由中繼憑證簽發終端憑證 (伺服器, 客户端).
+    <br><br><br>
+
+    01. 建立一個目錄, 存放所有關於根憑證的資料, 名稱是
+    <font class="css_font_b1">/ca/root</font><br>
+    <div class="css_div_block">
+      <font class="css_font_p1">cd /</font><br>
+      <font class="css_font_p1">mkdir ca</font><br>
+      <font class="css_font_p1">mkdir ca/root</font>
+    </div>
+    <br>
+
+    02. 進入根憑證目錄, 建立相關的目錄和檔案.
+    <div class="css_div_block">
+      <font class="css_font_p1">cd /ca/root</font><br><br>
+      # 建立相關目錄.<br>
+      # private 存放根憑證的私鑰.<br>
+      # cert 存放根憑證的憑證.<br>
+      # signed_certs 存放根憑證簽發過的憑證的副本.<br>
+      <font class="css_font_p1">mkdir private cert signed_certs</font><br><br>
+      # 變更 private 目錄的存取權限.<br>
+      <font class="css_font_p1">chmod 700 private</font><br><br>
+      # 建立 index.txt, 此檔案會用來紀錄根憑證簽發過的憑證的紀錄,
+      每次根憑證簽發憑證 OpenSSL 會自動更新此檔案.<br>
+      <font class="css_font_p1">touch index.txt</font><br><br>
+      # 建立 serial, 並在檔案中填入 0001, 被簽發的憑證都會有序號的欄位,
+      紀錄此憑證在上一層簽發單位所簽發的憑證的序號, 此檔案會用來紀錄根憑證簽發的憑證的序號,
+      每次根憑證簽發憑證 OpenSSL 會自動更新此檔案.<br>
+      <font class="css_font_p1">echo 0001 > serial</font>
+    </div>
+    <br>
+
+    03. 填寫 OpenSSL 需要的設定檔, 檔名是
+    <font class="css_font_b1">openssl_root_ca.cnf</font>,
+    並放置在 <font class="css_font_b1">root</font> 目錄內,
+    內容如下.<br>
+<pre class="css_pre_code">
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+# 放置相關的檔案和目錄.
+dir           = /ca/root
+certs         = $dir/cert
+new_certs_dir = $dir/signed_certs
+database      = $dir/index.txt
+serial        = $dir/serial
+RANDFILE      = $dir/private/.rand
+
+# 放置私鑰和憑證的路徑.
+private_key   = $dir/private/root_ca.key.pem
+certificate   = $dir/cert/root_ca.cert.pem
+
+default_md    = sha256
+
+name_opt      = ca_default
+cert_opt      = ca_default
+default_days  = 365
+preserve      = no
+policy        = policy_defualt
+
+[ policy_defualt ]
+# 簽發中繼憑證時資料的檢查 (是否必須和根憑證一樣).
+countryName            = optional
+stateOrProvinceName    = optional
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+
+[ req ]
+# req 工具需要的參數.
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+string_mask        = utf8only
+default_md         = sha256
+
+[ req_distinguished_name ]
+# 產生憑證時要輸入的資料的說明.
+countryName            = Country Name (2 letter code)
+stateOrProvinceName    = State or Province Name
+localityName           = Locality Name
+0.organizationName     = Organization Name
+organizationalUnitName = Organizational Unit Name
+commonName             = Common Name
+emailAddress           = Email Address
+
+[ root_ca ]
+# 簽發根憑證使用.
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+
+[ intermediate_ca ]
+# 簽發中繼憑證使用.
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true, pathlen:0
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+</pre>
+    <br>
+
+    04. 在根憑證目錄產生根憑證的私鑰, 檔名是
+    <font class="css_font_b1">root_ca.key.pem</font><br>
+    <div class="css_div_block">
+      <font class="css_font_p1">openssl genrsa -aes256 -out private/root_ca.key.pem 4096</font><br><br>
+      # 會提示需要輸入私鑰使用的密碼, 例如是 alice123<br>
+      <font class="css_font_c1">Enter pass phrase for private/root_ca.key.pem:</font><font class="css_font_r1">alice123</font><br>
+      # 再次確認密碼.<br>
+      <font class="css_font_c1">Verifying - Enter pass phrase for private/root_ca.key.pem:</font><font class="css_font_r1">alice123</font><br><br>
+      # 變更私鑰的存取權限.<br>
+      <font class="css_font_p1">chmod 400 private/root_ca.key.pem</font>
+    </div>
+    <br>
+
+    05. 在根憑證目錄產生根憑證的自簽憑證, 檔名是
+    <font class="css_font_b1">root_ca.cert.pem</font><br>
+    <div class="css_div_block">
+      # -days 7300, 表示憑證的有效期限是 7300 天.<br>
+      <font class="css_font_p1">
+      openssl req -config openssl_root_ca.cnf \<br>
+      -new -x509 -days 7300 -sha256 -extensions root_ca \<br>
+      -key private/root_ca.key.pem \<br>
+      -out cert/root_ca.cert.pem
+      </font><br><br>
+      # 會提示需要輸入根憑證的私鑰密碼, 也就是 alice123<br>
+      <font class="css_font_c1">Enter pass phrase for private/root_ca.key.pem:</font><font class="css_font_r1">alice123</font><br><br>
+      # 接著需要輸入憑證擁有者的資訊.<br>
+      <font class="css_font_c1">
+      You are about to be asked to enter information that will be incorporated into your certificate request.<br>
+      What you are about to enter is what is called a Distinguished Name or a DN.<br>
+      There are quite a few fields but you can leave some blank For some fields there will be a default value,<br>
+      If you enter '.', the field will be left blank.<br>
+      -----
+      </font><br>
+      # 所在的國家的縮寫, 2 個字母, 例如 Taiwan = TW, Unit State = US.<br>
+      <font class="css_font_c1">Country Name (2 letter code) []:</font><font class="css_font_r1">TW</font><br>
+      # 所在的州或省.<br>
+      <font class="css_font_c1">State or Province Name []:</font><font class="css_font_r1">Taiwan</font><br>
+      # 所在的城市.<br>
+      <font class="css_font_c1">Locality Name []:</font><font class="css_font_r1">Taipei</font><br>
+      # 所在的公司.<br>
+      <font class="css_font_c1">Organization Name []:</font><font class="css_font_r1">Alice Ltd</font><br>
+      # 所在的公司的單位.<br>
+      <font class="css_font_c1">Organizational Unit Name []:</font><font class="css_font_r1">Alice Ltd Certificate Authority</font><br>
+      # 憑證的名稱.<br>
+      <font class="css_font_c1">Common Name []:</font><font class="css_font_r1">Alice Ltd Root CA</font><br>
+      # 聯絡信箱.<br>
+      <font class="css_font_c1">Email Address []:</font><font class="css_font_r1">alice@local</font><br><br>
+      # 變更憑證的存取權限.<br>
+      <font class="css_font_p1">chmod 444 cert/root_ca.cert.pem</font>
+    </div>
+    <br>
+
+    06. 檢查自簽的根憑證是否無誤.<br>
+    <div class="css_div_block">
+      <font class="css_font_p1">openssl x509 -noout -text -in cert/root_ca.cert.pem</font><br><br>
+      # 使用的演算法.<br>
+      <font class="css_font_c1">Signature Algorithm:</font>
+      <font class="css_font_r1">sha256WithRSAEncryption</font><br><br>
+      # 公鑰的長度.<br>
+      <font class="css_font_c1">Subject Public Key Info:</font><br>
+      <font class="css_font_r1">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Public-Key: (4096 bit)</font><br><br>
+      # 有效日期.<br>
+      <font class="css_font_c1">Validity:</font><br>
+      <font class="css_font_r1">
+      &nbsp;&nbsp;&nbsp;&nbsp;Not Before: Aug &nbsp;4 23:54:17 2017 GMT<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Not After : Jul 30 23:54:17 2037 GMT
+      </font><br><br>
+      # 主旨.<br>
+      <font class="css_font_c1">Subject:</font>
+      <font class="css_font_r1">
+      C=TW, ST=Taiwan, L=Taipei, O=Alice Ltd, OU=Alice Ltd Certificate Authority,
+      CN=Alice Ltd Root CA/emailAddress=alice@local
+      </font><br><br>
+      # 簽發者, 因為是自簽, 這邊的資料會和主旨部分一樣.<br>
+      <font class="css_font_c1">Issuer:</font>
+      <font class="css_font_r1">
+      C=TW, ST=Taiwan, L=Taipei, O=Alice Ltd, OU=Alice Ltd Certificate Authority,
+      CN=Alice Ltd Root CA/emailAddress=alice@local
+      </font>
+    </div>
+    <br>
+
+  </div>
+</div>
+<br>
+
+</body>
+
+</html>
