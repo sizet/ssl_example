@@ -124,7 +124,7 @@ extendedKeyUsage = clientAuth, emailProtection
     <font class="css_font_b1">intermediate_ca.key.pem</font><br>
     <div class="css_div_block">
       <font class="css_font_p1">openssl genrsa -aes256 -out private/intermediate_ca.key.pem 4096</font><br><br>
-      # 會提示需要輸入私鑰使用的密碼, 例如是 bob123<br>
+      使用 -aes256 對私鑰加密, 會提示需要輸入加密的密碼, 例如是 bob123<br>
       <font class="css_font_c1">Enter pass phrase for private/intermediate_ca.key.pem:</font><font class="css_font_r1">bob123</font><br>
       # 再次確認密碼.<br>
       <font class="css_font_c1">Verifying - Enter pass phrase for private/intermediate_ca.key.pem:</font><font class="css_font_r1">bob123</font><br><br>
@@ -141,7 +141,7 @@ extendedKeyUsage = clientAuth, emailProtection
       -key private/intermediate_ca.key.pem \<br>
       -out csr/intermediate_ca.csr.pem
       </font><br><br>
-      # 會提示需要輸入中繼憑證的私鑰密碼, 也就是 bob123<br>
+      # 會提示需要輸入中繼憑證的私鑰的加密密碼, 也就是 bob123<br>
       <font class="css_font_c1">Enter pass phrase for private/intermediate_ca.key.pem:</font><font class="css_font_r1">bob123</font><br><br>
       # 接著需要輸入憑證擁有者的資訊.<br>
       <font class="css_font_c1">
@@ -180,7 +180,7 @@ extendedKeyUsage = clientAuth, emailProtection
       -in ../intermediate/csr/intermediate_ca.csr.pem \<br>
       -out ../intermediate/cert/intermediate_ca.cert.pem
       </font><br><br>
-      # 會提示需要輸入根憑證的私鑰密碼, 也就是 alice123<br>
+      # 會提示需要輸入根憑證的私鑰的加密密碼, 也就是 alice123<br>
       <font class="css_font_c1">Enter pass phrase for /ca/root/private/root_ca.key.pem:</font><font class="css_font_r1">alice123</font><br><br>
       # 接著會顯示要簽發的憑證簽發申請檔的內容.<br>
       <font class="css_font_c1">
